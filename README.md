@@ -85,6 +85,4 @@ Ou, depois de instalar as dependencias da UI Phaser:
 npm --prefix ui-phaser test
 ```
 
-## Observacoes para publicacao
 
-Este diretorio foi preparado para ser publicado como raiz do repositorio. Arquivos gerados, dependencias locais e saidas de debug devem ficar fora do versionamento.
