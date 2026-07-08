@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RH Procedural - UI Simples</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>RH Procedural</h1>
+      <p id="companyLine">Carregando empresa...</p>
+    </div>
+    <form id="seedForm" class="seed-form">
+      <label for="seedInput">Seed</label>
+      <input id="seedInput" name="seed" value="RH-UI-001" autocomplete="off">
+      <button type="submit">Gerar</button>
+    </form>
+  </header>
+
+  <main class="layout">
+    <section class="panel overview">
+      <h2>Resumo</h2>
+      <p id="scenarioLine" class="scenario-line"></p>
+      <div id="metricsGrid" class="metrics-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Planejar Semana</h2>
+      <div class="action-form">
+        <label>
+          Acao
+          <select id="actionSelect"></select>
+        </label>
+        <label>
+          Alvo
+          <select id="targetSelect"></select>
+        </label>
+        <label>
+          Modo
+          <select id="modeSelect">
+            <option value="executar">Executar agora</option>
+            <option value="planejar">Planejar</option>
+          </select>
+        </label>
+        <label>
+          Dias preparo
+          <input id="prepDaysInput" type="number" min="0" max="30" value="7">
+        </label>
+        <button id="addActionButton" type="button">Adicionar</button>
+      </div>
+      <div class="queue-header">
+        <h3>Fila da semana</h3>
+        <button id="clearQueueButton" type="button">Limpar</button>
+      </div>
+      <ul id="actionQueue" class="queue"></ul>
+      <button id="advanceWeekButton" class="primary" type="button">Avancar semana</button>
+    </section>
+
+    <section class="panel">
+      <h2>Save / Load</h2>
+      <div class="save-actions">
+        <button id="saveLocalButton" type="button">Salvar local</button>
+        <button id="loadLocalButton" type="button">Carregar local</button>
+        <button id="exportJsonButton" type="button">Exportar JSON</button>
+        <button id="importJsonButton" type="button">Importar JSON</button>
+      </div>
+      <textarea id="saveJsonInput" class="save-json" spellcheck="false" placeholder="JSON exportado/importado"></textarea>
+    </section>
+
+    <section class="panel">
+      <h2>Funcionarios em Atencao</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Nome</th><th>Cargo</th><th>Risco</th><th>Sobrecarga</th><th>Confiab.</th></tr>
+          </thead>
+          <tbody id="employeesTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Setores</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Setor</th><th>Func.</th><th>Clima</th><th>Carga</th><th>Rumor</th></tr>
+          </thead>
+          <tbody id="sectorsTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Sinais Visiveis</h2>
+      <ul id="signalsList" class="signal-list"></ul>
+    </section>
+
+    <section class="panel">
+      <h2>Acoes em Andamento</h2>
+      <ul id="plannedActionsList" class="signal-list"></ul>
+    </section>
+
+    <section class="panel wide">
+      <h2>Relatorio Semanal</h2>
+      <pre id="weeklyReport" class="report">Nenhuma semana jogada ainda.</pre>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="./app.js"></script>
+</body>
+</html>
