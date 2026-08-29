@@ -30,6 +30,9 @@ function printCompanySummary(state) {
   const avgSatisfaction = average(employees.map((employee) => employee.satisfacao));
   const avgOverload = average(employees.map((employee) => employee.sobrecarga));
   const avgRisk = average(employees.map((employee) => employee.riscoDeSaida));
+  const avgDelivery = average(employees.map((employee) => employee.deliveryCapacity));
+  const avgQuality = average(employees.map((employee) => employee.deliveryQuality));
+  const avgSustainability = average(employees.map((employee) => employee.workSustainability));
 
   console.log("\nDOSSIÊ ORGANIZACIONAL INICIAL");
   console.log(`Seed: ${state.seed}`);
@@ -41,6 +44,7 @@ function printCompanySummary(state) {
   console.log("\nLEITURA ESTRUTURAL");
   buildCompanyDiagnostic(company, economy, employees).forEach((line) => console.log(`- ${line}`));
   console.log(`- Indicadores humanos agregados: satisfacao ${Math.round(avgSatisfaction)}, sobrecarga ${Math.round(avgOverload)}, risco medio de saida ${Math.round(avgRisk)}.`);
+  console.log(`- Trabalho agregado: entrega ${Math.round(avgDelivery)}, qualidade ${Math.round(avgQuality)}, sustentabilidade ${Math.round(avgSustainability)}.`);
   console.log("- Observacao metodologica: medias ajudam a orientar, mas podem esconder concentracao de risco em setores ou pessoas-chave.");
 
   console.log("\nTEMPO");
@@ -73,7 +77,9 @@ function printEmployeesSummary(state, limit = 12) {
         "-"
       )} | especializacao ${safeNumber(employee.especializacao)} | produtividade ${safeNumber(employee.produtividade)} | satisfacao ${safeNumber(
         employee.satisfacao
-      )} | sobrecarga ${safeNumber(employee.sobrecarga)} | risco saida ${safeNumber(employee.riscoDeSaida)}.`
+      )} | sobrecarga ${safeNumber(employee.sobrecarga)} | entrega ${safeNumber(employee.deliveryCapacity)} | qualidade ${safeNumber(
+        employee.deliveryQuality
+      )} | sustentabilidade ${safeNumber(employee.workSustainability)} | risco saida ${safeNumber(employee.riscoDeSaida)}.`
     );
     console.log(`  leitura RH: ${buildEmployeeReading(employee, sector)}`);
   });

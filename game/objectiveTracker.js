@@ -7,6 +7,7 @@
  */
 
 const { average } = require("../tests/testUtils");
+const { summarizeCompanyWorkIndicators } = require("../simulation/workDeliverySimulation");
 
 function createObjectiveTracker(state, options = {}) {
   return {
@@ -18,6 +19,7 @@ function createObjectiveTracker(state, options = {}) {
 
 function summarizeObjectiveMetrics(state) {
   const activeEmployees = state.employees.filter((employee) => employee.status !== "desligado");
+  const workIndicators = summarizeCompanyWorkIndicators(state);
   return {
     dia: state.calendar.totalDiasSimulados,
     satisfacaoMedia: average(activeEmployees.map((employee) => employee.satisfacao)),
@@ -26,6 +28,9 @@ function summarizeObjectiveMetrics(state) {
     riscoSaidaMedio: average(activeEmployees.map((employee) => employee.riscoDeSaida)),
     climaMedio: average(state.sectors.map((sector) => sector.climaSetor)),
     confiancaRhMedia: average(activeEmployees.map((employee) => employee.confiancaNoRH)),
+    deliveryCapacityMedia: workIndicators.deliveryCapacity,
+    deliveryQualityMedia: workIndicators.deliveryQuality,
+    workSustainabilityMedia: workIndicators.workSustainability,
     turnoverAcumulado: state.company.turnoverAcumulado || 0,
     caixa: state.economy.caixaAtual,
     denunciasAbertas: state.reportCases.filter((reportCase) => reportCase.status !== "acao_corretiva_aplicada").length,

@@ -228,9 +228,7 @@ function buildNpcActionOptions(npc, snapshot, location) {
 
 function buildLocalActionOptions(interactable, snapshot, location) {
   const actionByType = new Map((snapshot.actionAvailability || []).map((action) => [action.tipo, action]));
-  const firstSectorId = snapshot.world.sectors[0]?.id;
-  const firstEmployeeId = snapshot.playerKnowledge.employees[0]?.id;
-  const sectorId = interactable.sectorId || location?.sectorId || firstSectorId;
+  const sectorId = interactable.sectorId || location?.sectorId || null;
   const recipes = {
     observacao_setor: [
       { tipo: "conversa_com_lideranca", label: "Conversar com lideranca local", preferredDuration: 30, alvo: { sectorId } },
@@ -243,21 +241,15 @@ function buildLocalActionOptions(interactable, snapshot, location) {
       { tipo: "pesquisa_clima_simples", label: "Preparar pesquisa de clima", preferredDuration: 60, alvo: { sectorId }, modo: "projeto" },
     ],
     mesa_rh: [{ tipo: "pesquisa_clima_simples", label: "Preparar pesquisa na mesa do RH", preferredDuration: 60, alvo: { sectorId }, modo: "projeto" }],
-    diretoria: [
-      {
-        tipo: "formalizar_funcao_informal",
-        label: "Levar caso funcional a diretoria",
-        preferredDuration: 60,
-        alvo: { employeeId: firstEmployeeId },
-        modo: "projeto",
-      },
-    ],
+    diretoria: [],
   };
 
   return (recipes[interactable.tipo] || [])
     .map((recipe) => {
       const action = actionByType.get(recipe.tipo);
       if (!action || action.alvosDisponiveis <= 0) return null;
+      if (action.alvo === "setor" && !recipe.alvo?.sectorId) return null;
+      if (action.alvo === "funcionario" && !recipe.alvo?.employeeId) return null;
       if (!isAllowedAtLocation(action, location, interactable)) return null;
       return {
         ...recipe,

@@ -22,14 +22,38 @@ function runMvpCalibration(seedCount = DEFAULT_SEED_COUNT, options = {}) {
 
 function compareSeed(seed) {
   const noAction = runScenario(seed, "sem_acoes", () => []);
+  const misguided = runScenario(seed, "estrategia_mal_direcionada", createMisguidedStrategy());
   const technical = runScenario(seed, "estrategia_tecnica", createDefaultTechnicalStrategy());
 
   return {
     seed,
     noAction,
+    misguided,
     technical,
     actionScoreDelta: technical.finalEvaluation.score - noAction.finalEvaluation.score,
+    informedVsMisguidedScoreDelta: technical.finalEvaluation.score - misguided.finalEvaluation.score,
     actionClassificationChanged: technical.finalEvaluation.classificacao !== noAction.finalEvaluation.classificacao,
+  };
+}
+
+function createMisguidedStrategy() {
+  return function misguidedStrategy(briefing) {
+    const healthiestSector = briefing.setores
+      .slice()
+      .sort((left, right) => right.clima - left.clima || left.rumor - right.rumor)[0];
+    const leastUrgentPerson = briefing.funcionariosEmAtencao
+      .slice()
+      .sort((left, right) => left.riscoSaidaEstimado - right.riscoSaidaEstimado)[0];
+    const requests = [];
+
+    if (healthiestSector) {
+      requests.push({ tipo: "pesquisa_clima_simples", alvo: { sectorId: healthiestSector.sectorId }, modo: "executar" });
+    }
+    if (leastUrgentPerson) {
+      requests.push({ tipo: "checkin_individual_rapido", alvo: { employeeId: leastUrgentPerson.employeeId }, modo: "executar" });
+      requests.push({ tipo: "mapeamento_tarefas_reais", alvo: { employeeId: leastUrgentPerson.employeeId }, modo: "executar" });
+    }
+    return requests;
   };
 }
 
@@ -131,14 +155,18 @@ function summarizeProblemMovement(initial, final) {
 
 function buildCalibrationReport(rows) {
   const technicalRows = rows.map((row) => row.technical);
+  const misguidedRows = rows.map((row) => row.misguided);
   const noActionRows = rows.map((row) => row.noAction);
   const summary = {
     seedCount: rows.length,
     technical: summarizeStrategyRows(technicalRows),
+    misguided: summarizeStrategyRows(misguidedRows),
     noAction: summarizeStrategyRows(noActionRows),
     actionImpact: {
       averageScoreDelta: average(rows.map((row) => row.actionScoreDelta)),
+      informedVsMisguidedAverageScoreDelta: average(rows.map((row) => row.informedVsMisguidedScoreDelta)),
       improvedScoreFrequency: ratio(rows.filter((row) => row.actionScoreDelta > 0).length, rows.length),
+      informedBeatsMisguidedFrequency: ratio(rows.filter((row) => row.informedVsMisguidedScoreDelta > 0).length, rows.length),
       worsenedScoreFrequency: ratio(rows.filter((row) => row.actionScoreDelta < 0).length, rows.length),
       classificationChangeFrequency: ratio(rows.filter((row) => row.actionClassificationChanged).length, rows.length),
     },
@@ -260,4 +288,5 @@ module.exports = {
   runMvpCalibration,
   compareSeed,
   runScenario,
+  createMisguidedStrategy,
 };

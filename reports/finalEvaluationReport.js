@@ -126,6 +126,9 @@ function buildTechnicalInterpretation(evaluation, criteriosOk, criteriosAtencao)
   if (criteriosAtencao.some((criterion) => containsAny(criterion.nome, ["clima", "satisfacao"]))) {
     lines.push("A dimensao de clima/satisfacao ficou fragil: isso sugere que a experiencia cotidiana de trabalho nao foi suficientemente reorganizada.");
   }
+  if (criteriosAtencao.some((criterion) => containsAny(criterion.nome, ["sustentabilidade", "trabalho"]))) {
+    lines.push("A sustentabilidade do trabalho ficou fragil: a organizacao pode ter preservado entregas de curto prazo acumulando custo humano futuro.");
+  }
   if (criteriosAtencao.some((criterion) => containsAny(criterion.nome, ["turnover", "saida"]))) {
     lines.push("A retencao aparece como ponto sensivel: perdas no periodo podem ter redistribuido carga, afetado memoria coletiva e reduzido previsibilidade operacional.");
   }
@@ -162,6 +165,8 @@ function buildResidualRisks(criteriosAtencao) {
       risks.push("Risco de perda de conhecimento tacito: saidas podem afetar dependencia tecnica e gerar sobrecarga secundaria em quem permanece.");
     } else if (containsAny(name, ["demanda", "pendente", "acumulo"])) {
       risks.push("Risco de fila invisivel: demandas nao tratadas podem virar conflitos, sinais de exaustao ou perda de confianca na responsividade do RH.");
+    } else if (containsAny(name, ["sustentabilidade", "trabalho"])) {
+      risks.push("Risco de desempenho insustentavel: volume de entrega pode esconder perda de energia, qualidade e seguranca psicologica.");
     } else if (containsAny(name, ["confianca", "rh"])) {
       risks.push("Risco de decisao com baixa visibilidade: sem confianca no RH, a organizacao tende a esconder problemas ate que eles fiquem caros.");
     } else if (containsAny(name, ["denuncia", "compliance", "seguranca"])) {
@@ -187,6 +192,9 @@ function buildOrganizationalLegacy(evaluation, criteriosOk, criteriosAtencao) {
   }
   if (criteriosOk.some((criterion) => containsAny(criterion.nome, ["turnover", "saida"]))) {
     legacy.push("A retencao ficou dentro do limite definido, preservando parte da memoria operacional e das redes informais de apoio.");
+  }
+  if (criteriosOk.some((criterion) => containsAny(criterion.nome, ["sustentabilidade", "trabalho"]))) {
+    legacy.push("A rotina de trabalho terminou com sustentabilidade minima, reduzindo chance de desgaste oculto no proximo ciclo.");
   }
   if (criteriosAtencao.length) {
     legacy.push("A organizacao ainda carrega pendencias: o proximo ciclo deve tratar causas provaveis, nao apenas indicadores finais.");
@@ -214,6 +222,9 @@ function buildNextCycleRecommendations(criteriosAtencao) {
   if (criteriosAtencao.some((criterion) => containsAny(criterion.nome, ["clima", "satisfacao", "sobrecarga"]))) {
     recommendations.push("Abrir frente de diagnostico setorial: comparar carga, clima, lideranca e memoria recente antes de aplicar intervencao generalista.");
   }
+  if (criteriosAtencao.some((criterion) => containsAny(criterion.nome, ["sustentabilidade", "trabalho"]))) {
+    recommendations.push("Separar produtividade de sustentabilidade: mapear setores que entregam volume alto com energia, suporte ou justica em queda.");
+  }
   if (criteriosAtencao.some((criterion) => containsAny(criterion.nome, ["turnover", "saida"]))) {
     recommendations.push("Criar mapa de retencao: cruzar risco de saida, empregabilidade externa, dependencia tecnica e vinculos internos.");
   }
@@ -239,6 +250,7 @@ function interpretCriterion(criterion) {
     if (containsAny(name, ["clima", "satisfacao"])) return "Patamar minimo de experiencia coletiva preservado.";
     if (containsAny(name, ["turnover", "saida"])) return "Perdas ficaram dentro do limite tolerado para a campanha.";
     if (containsAny(name, ["confianca", "rh"])) return "Legitimidade minima do RH foi mantida ou reconstruida.";
+    if (containsAny(name, ["sustentabilidade", "trabalho"])) return "Ritmo de trabalho preservado sem deterioracao humana excessiva.";
     if (containsAny(name, ["denuncia", "compliance"])) return "Nao ha pendencia formal acima do limite definido.";
     return "Criterio cumprido dentro do contrato do cenario.";
   }
@@ -247,6 +259,7 @@ function interpretCriterion(criterion) {
   if (containsAny(name, ["turnover", "saida"])) return "O limite de perda de pessoas foi superado ou ficou acima da tolerancia definida.";
   if (containsAny(name, ["demanda", "pendente", "acumulo"])) return "A capacidade de resposta nao acompanhou a entrada ou acumulacao de demandas.";
   if (containsAny(name, ["confianca", "rh"])) return "O RH encerrou com legitimidade insuficiente para sustentar diagnostico fino.";
+  if (containsAny(name, ["sustentabilidade", "trabalho"])) return "O ritmo de entrega ficou humanamente fragil; investigar energia, suporte, justica e carga.";
   if (containsAny(name, ["denuncia", "compliance", "seguranca"])) return "Existe pendencia sensivel que pode afetar seguranca psicologica e confianca institucional.";
   if (containsAny(name, ["caixa", "financeiro"])) return "A restricao financeira ficou abaixo do patamar minimo de seguranca definido.";
   return "Criterio nao cumprido; investigar causa provavel antes de nova rodada.";

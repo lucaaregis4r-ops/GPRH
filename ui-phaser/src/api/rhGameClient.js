@@ -6,12 +6,32 @@ export async function startDailySession(seed) {
   return postJson("/api/daily/new", { seed });
 }
 
+export async function fetchSaveStatus() {
+  return fetchJson("/api/save/status");
+}
+
+export async function continueSavedSession() {
+  return postJson("/api/save/continue", {});
+}
+
+export async function resetSavedSession(seed) {
+  return postJson("/api/save/reset", { seed });
+}
+
 export async function playDailyAction(action) {
   return postJson("/api/daily/action", action);
 }
 
 export async function endDay() {
   return postJson("/api/daily/end-day", {});
+}
+
+export async function unlockTechnology(techId) {
+  return postJson("/api/technology/unlock", { techId });
+}
+
+export async function upgradeTechnology(techId) {
+  return postJson("/api/technology/upgrade", { techId });
 }
 
 async function fetchJson(url) {

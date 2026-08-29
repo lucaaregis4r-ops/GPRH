@@ -15,23 +15,26 @@ const TILE = {
 
 function generateOfficeMap(state, options = {}) {
   const rng = createRng(`${state.seed}:office-map`);
+  const employeeCountBySector = countActiveEmployeesBySector(state);
   const sectorRooms = state.sectors.map((sector) => ({
     id: `room_${sector.id}`,
     tipo: "setor",
     nome: sector.nome,
     sectorId: sector.id,
+    employeeCount: employeeCountBySector.get(sector.id) || 0,
   }));
   const baseRooms = [
     { id: "recepcao", tipo: "recepcao", nome: "Recepcao" },
     { id: "rh", tipo: "rh", nome: "Sala do RH" },
     { id: "reuniao", tipo: "reuniao", nome: "Sala de reuniao" },
     { id: "copa", tipo: "copa", nome: "Copa" },
+    { id: "banheiro", tipo: "banheiro", nome: "Banheiro" },
     { id: "diretoria", tipo: "diretoria", nome: "Diretoria" },
   ];
   const roomSpecs = [...baseRooms, ...shuffle(sectorRooms, rng)];
   const columns = Math.max(4, Math.ceil(roomSpecs.length / 2));
-  const cellWidth = options.cellWidth || 12;
-  const cellHeight = options.cellHeight || 8;
+  const cellWidth = options.cellWidth || 18;
+  const cellHeight = options.cellHeight || 11;
   const corridorHeight = 3;
   const width = columns * cellWidth + 2;
   const height = cellHeight * 2 + corridorHeight + 4;
@@ -46,8 +49,9 @@ function generateOfficeMap(state, options = {}) {
     const top = index < columns;
     const maxRoomWidth = cellWidth - 2;
     const maxRoomHeight = cellHeight - 2;
-    const roomWidth = rng.int(Math.max(7, maxRoomWidth - 2), maxRoomWidth);
-    const roomHeight = rng.int(Math.max(5, maxRoomHeight - 1), maxRoomHeight);
+    const desired = desiredRoomSize(room, maxRoomWidth, maxRoomHeight);
+    const roomWidth = rng.int(Math.max(desired.width, maxRoomWidth - 1), maxRoomWidth);
+    const roomHeight = rng.int(Math.max(desired.height, maxRoomHeight - 1), maxRoomHeight);
     const x = 2 + column * cellWidth + rng.int(0, Math.max(0, maxRoomWidth - roomWidth));
     const y = top
       ? 2 + rng.int(0, Math.max(0, maxRoomHeight - roomHeight))
@@ -93,10 +97,37 @@ function generateOfficeMap(state, options = {}) {
   return map;
 }
 
+function countActiveEmployeesBySector(state) {
+  const counts = new Map();
+  (state.employees || [])
+    .filter((employee) => employee.status !== "desligado")
+    .forEach((employee) => {
+      counts.set(employee.setorId, (counts.get(employee.setorId) || 0) + 1);
+    });
+  return counts;
+}
+
+function desiredRoomSize(room, maxRoomWidth, maxRoomHeight) {
+  if (room.tipo !== "setor") {
+    return {
+      width: Math.min(maxRoomWidth, Math.max(8, maxRoomWidth - 2)),
+      height: Math.min(maxRoomHeight, Math.max(6, maxRoomHeight - 2)),
+    };
+  }
+
+  const count = Math.max(1, room.employeeCount || 1);
+  const columns = Math.max(2, Math.ceil(Math.sqrt(count)));
+  const rows = Math.max(1, Math.ceil(count / columns));
+  return {
+    width: Math.min(maxRoomWidth, Math.max(10, columns * 3 + 3)),
+    height: Math.min(maxRoomHeight, Math.max(7, rows * 3 + 3)),
+  };
+}
+
 function validateOfficeMap(map, state) {
   const errors = [];
   const roomById = new Map(map.rooms.map((room) => [room.id, room]));
-  ["recepcao", "rh", "reuniao", "copa", "diretoria"].forEach((roomId) => {
+  ["recepcao", "rh", "reuniao", "copa", "banheiro", "diretoria"].forEach((roomId) => {
     if (!roomById.has(roomId)) errors.push(`sala obrigatoria ausente: ${roomId}`);
   });
 
@@ -202,6 +233,7 @@ function buildMapInteractables(state, rooms) {
     pointInRoom("rh", "Mesa do RH", "mesa_rh"),
     pointInRoom("recepcao", "Quadro de avisos", "quadro_avisos"),
     pointInRoom("copa", "Copa", "copa"),
+    pointInRoom("banheiro", "Banheiro", "banheiro"),
     pointInRoom("diretoria", "Diretoria", "diretoria"),
     pointInRoom("reuniao", "Mesa de reuniao", "mesa_reuniao"),
     ...state.sectors.map((sector) => {

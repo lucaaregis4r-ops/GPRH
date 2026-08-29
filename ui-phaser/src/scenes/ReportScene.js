@@ -26,9 +26,9 @@ export class ReportScene extends Phaser.Scene {
 
     this.add.text(x + 22, y + 58, this.buildReportText(), {
       fontFamily: GPRHTheme.font.family,
-      fontSize: "14px",
+      fontSize: "12px",
       color: GPRHTheme.colors.cream,
-      lineSpacing: 8,
+      lineSpacing: 5,
       wordWrap: { width: width - 44 },
     }).setDepth(10);
 
@@ -50,7 +50,7 @@ export class ReportScene extends Phaser.Scene {
     if ((this.report.acoes || []).length === 0) {
       lines.push("- Nenhuma acao direta registrada.");
     } else {
-      this.report.acoes.slice(0, 5).forEach((action) => {
+      this.report.acoes.slice(0, 3).forEach((action) => {
         lines.push(`- ${action.nome}: ${action.inicio || ""}-${action.fim || ""} | ${action.tempoInvestidoMin || action.progressoMin || 0} min`);
       });
     }
@@ -60,7 +60,7 @@ export class ReportScene extends Phaser.Scene {
     if ((this.report.eventosNovos || []).length === 0) {
       lines.push("- Nada relevante apareceu hoje.");
     } else {
-      this.report.eventosNovos.slice(0, 4).forEach((event) => {
+      this.report.eventosNovos.slice(0, 2).forEach((event) => {
         lines.push(`- ${event.descricao || event.tipo}`);
       });
     }
@@ -70,7 +70,7 @@ export class ReportScene extends Phaser.Scene {
     if ((this.report.projetos || []).length === 0) {
       lines.push("- Nenhum projeto em andamento.");
     } else {
-      this.report.projetos.slice(0, 4).forEach((project) => {
+      this.report.projetos.slice(0, 2).forEach((project) => {
         lines.push(`- ${project.nome}: ${project.progressoMin}/${project.tempoIdealMin} min | ${project.status}`);
       });
     }
@@ -80,6 +80,23 @@ export class ReportScene extends Phaser.Scene {
       lines.push("");
       lines.push(`Leitura parcial: ${partial.leituraGeral}`);
       lines.push(`Clima ${partial.clima}; confianca RH ${partial.confiancaRh}; sobrecarga ${partial.sobrecarga}; demandas ${partial.demandasPendentes}.`);
+    }
+
+    if (this.report.variacoes) {
+      const delta = this.report.variacoes;
+      lines.push("");
+      lines.push("Variacoes observadas:");
+      lines.push(`Clima ${formatDelta(delta.climaMedio)} | Confianca RH ${formatDelta(delta.confiancaRhMedia)} | Sobrecarga ${formatDelta(delta.sobrecargaMedia)} | Demandas ${formatDelta(delta.demandasPendentes)}`);
+    }
+
+    if ((this.report.causalidade || []).length > 0) {
+      lines.push("");
+      lines.push("Causalidade e acompanhamento:");
+      this.report.causalidade.slice(0, 2).forEach((item) => {
+        const evidence = item.evidencias.length ? item.evidencias[0] : "sem evidencia observavel";
+        lines.push(`- ${item.nome}: ${evidence} | confianca ${item.confiabilidade}; ${item.followUp}.`);
+      });
+      lines.push("Associacao temporal nao prova causalidade; outras mudancas da empresa podem contribuir.");
     }
 
     if (this.report.relatorioSemanal) {
@@ -99,4 +116,9 @@ export class ReportScene extends Phaser.Scene {
     this.scene.stop();
     this.scene.resume("OfficeScene");
   }
+}
+
+function formatDelta(value) {
+  const number = Number(value || 0);
+  return `${number > 0 ? "+" : ""}${number}`;
 }

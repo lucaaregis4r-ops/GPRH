@@ -23,6 +23,11 @@ const tests = [
   { name: "gameSnapshot.test", module: require("./gameSnapshot.test") },
   { name: "dayLoop.test", module: require("./dayLoop.test") },
   { name: "officeMap.test", module: require("./officeMap.test") },
+  { name: "employeeRoutine.test", module: require("./employeeRoutine.test") },
+  { name: "workDelivery.test", module: require("./workDelivery.test") },
+  { name: "socialInteraction.test", module: require("./socialInteraction.test") },
+  { name: "orgChart.test", module: require("./orgChart.test") },
+  { name: "organizationalTech.test", module: require("./organizationalTech.test") },
   { name: "uiPhaser.test", module: require("./uiPhaser.test") },
 ];
 

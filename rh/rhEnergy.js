@@ -7,9 +7,13 @@
  */
 
 const { clampPercent } = require("../core/clamp");
+const { initializeOrganizationalTechnologies } = require("./organizationalTechTree");
 
 function initializeRhState(state) {
-  if (state.rh) return state.rh;
+  if (state.rh) {
+    initializeOrganizationalTechnologies(state);
+    return state.rh;
+  }
 
   const weeklyEnergy = Math.max(5, Math.round((state.company.capacidadeRH || 50) / 10) + 3);
   state.rh = {
@@ -25,6 +29,7 @@ function initializeRhState(state) {
     aprovacoesDiretoria: [],
   };
 
+  initializeOrganizationalTechnologies(state);
   return state.rh;
 }
 

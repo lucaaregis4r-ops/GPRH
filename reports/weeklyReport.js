@@ -17,6 +17,9 @@ const METRIC_LABELS = {
   riscoSaidaMedio: "Risco medio de saida",
   climaMedio: "Clima medio",
   confiancaRhMedia: "Confianca media no RH",
+  deliveryCapacityMedia: "Capacidade de entrega",
+  deliveryQualityMedia: "Qualidade da entrega",
+  workSustainabilityMedia: "Sustentabilidade do trabalho",
   turnoverAcumulado: "Turnover acumulado",
   demandasPendentes: "Demandas pendentes",
   caixa: "Caixa",
@@ -29,6 +32,9 @@ const METRIC_DIRECTION = {
   riscoSaidaMedio: "down_good",
   climaMedio: "up_good",
   confiancaRhMedia: "up_good",
+  deliveryCapacityMedia: "up_good",
+  deliveryQualityMedia: "up_good",
+  workSustainabilityMedia: "up_good",
   turnoverAcumulado: "down_good",
   demandasPendentes: "down_good",
   caixa: "up_good",
@@ -145,6 +151,9 @@ function calculateChanges(inicio, fim) {
     riscoSaidaMedio: safeNumber(fim.riscoSaidaMedio) - safeNumber(inicio.riscoSaidaMedio),
     climaMedio: safeNumber(fim.climaMedio) - safeNumber(inicio.climaMedio),
     confiancaRhMedia: safeNumber(fim.confiancaRhMedia) - safeNumber(inicio.confiancaRhMedia),
+    deliveryCapacityMedia: safeNumber(fim.deliveryCapacityMedia) - safeNumber(inicio.deliveryCapacityMedia),
+    deliveryQualityMedia: safeNumber(fim.deliveryQualityMedia) - safeNumber(inicio.deliveryQualityMedia),
+    workSustainabilityMedia: safeNumber(fim.workSustainabilityMedia) - safeNumber(inicio.workSustainabilityMedia),
     turnoverAcumulado: safeNumber(fim.turnoverAcumulado) - safeNumber(inicio.turnoverAcumulado),
     demandasPendentes: safeNumber(fim.demandasPendentes) - safeNumber(inicio.demandasPendentes),
     caixa: safeNumber(fim.caixa) - safeNumber(inicio.caixa),
@@ -179,6 +188,9 @@ function buildSummary(inicio, fim, plano, progresso, mudancas, eventos) {
   if (diagnostic === "CRITICO") {
     fragments.push("o risco organizacional permanece critico e exige intervencao prioritaria");
   }
+  if (fim.deliveryCapacityMedia >= 65 && fim.workSustainabilityMedia < 45) {
+    fragments.push("a entrega aparente se mantem, mas com sustentabilidade baixa, padrao de risco de deterioracao futura");
+  }
   if (eventos.some((event) => event.tags && event.tags.includes("compliance"))) {
     fragments.push("foram registrados sinais de seguranca psicologica/compliance que nao devem ser tratados como conflito comum");
   }
@@ -196,6 +208,8 @@ function buildTechnicalReading(inicio, fim, plano, progresso, mudancas, eventos,
   const highRisk = activeEmployees.filter((employee) => safeNumber(employee.riscoDeSaida) >= 75).length;
   const searching = activeEmployees.filter((employee) => employee.estadoDeBuscaExterna).length;
   const complianceEvents = eventos.filter((event) => event.tags && event.tags.includes("compliance")).length;
+  const deliveryCapacity = safeNumber(fim.deliveryCapacityMedia);
+  const workSustainability = safeNumber(fim.workSustainabilityMedia);
 
   let executive = "A semana deve ser lida como um ciclo de observacao organizacional, nao apenas como fechamento de tarefas.";
 
@@ -211,6 +225,9 @@ function buildTechnicalReading(inicio, fim, plano, progresso, mudancas, eventos,
   } else if (complianceEvents > 0) {
     executive =
       "A semana trouxe eventos de compliance/seguranca psicologica. Esses registros devem ser analisados com prioridade porque tendem a contaminar confianca, cooperacao e legitimidade da lideranca.";
+  } else if (deliveryCapacity >= 65 && workSustainability < 45) {
+    executive =
+      "A organizacao ainda entrega volume, mas a sustentabilidade do trabalho esta baixa. Esse padrao costuma mascarar desgaste ate aparecer em erro, conflito ou saida.";
   } else if (safeGet(progresso, "diagnostico", "") === "MELHORANDO") {
     executive =
       "Os indicadores caminharam em direcao favoravel, mas a melhora deve ser considerada preliminar enquanto nao houver estabilidade em demanda, sobrecarga e confianca.";
@@ -232,6 +249,9 @@ function buildTechnicalReading(inicio, fim, plano, progresso, mudancas, eventos,
     capacityPieces.push(
       `${overloaded} pessoa(s) em sobrecarga alta, ${highRisk} em risco critico de saida e ${searching} com busca externa ativa`
     );
+  }
+  if (deliveryCapacity || workSustainability) {
+    capacityPieces.push(`entrega media ${Math.round(deliveryCapacity)} e sustentabilidade media ${Math.round(workSustainability)}`);
   }
 
   return {
@@ -263,6 +283,11 @@ function buildHypotheses(inicio, fim, plano, mudancas, eventos, state) {
   if (mudancas.riscoSaidaMedio > 1.5) {
     hypotheses.push(
       "O risco medio de saida subiu; verificar se a variacao esta concentrada em pessoas-chave, em setores de alta dependencia tecnica ou em cargos com empregabilidade externa alta."
+    );
+  }
+  if (mudancas.deliveryCapacityMedia > 1 && mudancas.workSustainabilityMedia < -1) {
+    hypotheses.push(
+      "A capacidade de entrega subiu enquanto a sustentabilidade caiu; verificar se o resultado veio de foco tenso, extensao informal de carga ou sacrificio de energia individual."
     );
   }
   if (complianceEvents.length) {
@@ -322,6 +347,12 @@ function buildRiskRegister(fim, mudancas, eventos, state) {
       descricao: "Pressao de caixa pode contaminar decisoes de pessoas: congelamento de contratacoes, aumento de cobranca e menor margem para recomposicao de equipe.",
     });
   }
+  if (safeNumber(fim.workSustainabilityMedia) > 0 && safeNumber(fim.workSustainabilityMedia) < 42) {
+    risks.push({
+      nivel: "ALTO",
+      descricao: "Sustentabilidade media do trabalho baixa; risco de queda posterior de qualidade, conflito e turnover mesmo com produtividade ainda preservada.",
+    });
+  }
 
   if (!risks.length) {
     risks.push({
@@ -342,6 +373,11 @@ function buildRecommendations(fim, plano, mudancas, eventos, state) {
   if (mudancas.sobrecargaMedia > 2 || safeNumber(fim.sobrecargaMedia) >= 65) {
     recommendations.push(
       "Mapear carga por setor antes de propor treinamento: quando a sobrecarga e estrutural, capacitar sem redistribuir trabalho pode aumentar cinismo organizacional."
+    );
+  }
+  if (safeNumber(fim.workSustainabilityMedia) > 0 && safeNumber(fim.workSustainabilityMedia) < 45) {
+    recommendations.push(
+      "Separar entrega atual de sustentabilidade: preservar volume sem recuperar energia, justica e suporte tende a empurrar custo humano para as proximas semanas."
     );
   }
   if (criticalEmployees.length) {
@@ -446,6 +482,18 @@ function interpretMetricChange(key, value, direction) {
     confiancaRhMedia: {
       favoravel: "Ganho de confianca amplia capacidade de escuta e reduz custo futuro de diagnostico.",
       desfavoravel: "Perda de confianca diminui acesso do RH a informacoes sensiveis e aumenta risco de decisao cega.",
+    },
+    deliveryCapacityMedia: {
+      favoravel: "Aumento de capacidade de entrega sugere maior volume potencial, mas deve ser cruzado com qualidade e sustentabilidade.",
+      desfavoravel: "Queda de capacidade de entrega pode indicar perda de foco, energia, especializacao disponivel ou excesso de sobrecarga.",
+    },
+    deliveryQualityMedia: {
+      favoravel: "Melhora de qualidade sugere menor risco de retrabalho e maior confiabilidade operacional.",
+      desfavoravel: "Queda de qualidade pode aparecer antes da queda de volume, especialmente sob medo, conflito ou baixa concentracao.",
+    },
+    workSustainabilityMedia: {
+      favoravel: "Melhora de sustentabilidade indica maior chance de manter ritmo sem deterioracao humana no curto prazo.",
+      desfavoravel: "Queda de sustentabilidade e alerta precoce: a empresa pode continuar entregando enquanto acumula desgaste.",
     },
     turnoverAcumulado: {
       favoravel: "Reducao nao se aplica diretamente ao acumulado; validar se houve correcao de base.",

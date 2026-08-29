@@ -92,6 +92,9 @@ function collectRangeAlerts(state) {
     "nivelEnsinoMercado",
     "ajusteEducacaoCargo",
     "ajusteEspecializacaoCargo",
+    "deliveryCapacity",
+    "deliveryQuality",
+    "workSustainability",
   ];
   const companyFields = [
     "maturidadeGestao",
@@ -146,6 +149,13 @@ function collectRangeAlerts(state) {
   }
   state.sectors.forEach((sector) => {
     validatePercentFields(alerts, "setor", sector.id, sector, sectorFields);
+    if (sector.workIndicators) {
+      validatePercentFields(alerts, "trabalho_setor", sector.id, sector.workIndicators, [
+        "deliveryCapacity",
+        "deliveryQuality",
+        "workSustainability",
+      ]);
+    }
     validatePercentFields(alerts, "compliance_setor", sector.id, sector, sectorComplianceFields);
   });
   state.employees.forEach((employee) => {
@@ -237,6 +247,10 @@ function collectCoherenceAlerts(state) {
   }
   if (state.memories) alerts.push("estado ainda possui state.memories; usar organizationEvents");
   if (state.memoriaOrganizacional) alerts.push("estado ainda possui memoriaOrganizacional; usar organizationEvents");
+  if (state.orgChart) {
+    if (!Array.isArray(state.orgChart.nodes)) alerts.push("orgChart sem nodes");
+    if (!Array.isArray(state.orgChart.edges)) alerts.push("orgChart sem edges");
+  }
 
   state.sectors.forEach((sector) => {
     const activeSectorEmployees = sector.funcionariosIds.filter((employeeId) => {
@@ -261,6 +275,9 @@ function collectCoherenceAlerts(state) {
       }
     }
     if (!employee.status) alerts.push(`funcionario ${employee.id} sem status`);
+    if (employee.status !== "desligado" && typeof employee.managerId === "undefined") {
+      alerts.push(`funcionario ${employee.id} sem managerId`);
+    }
     if (!employee.socialMarkers) alerts.push(`funcionario ${employee.id} sem socialMarkers`);
     if (employee.socialMarkers) {
       if (!employee.socialMarkers.genero) alerts.push(`funcionario ${employee.id} sem marcador de genero`);

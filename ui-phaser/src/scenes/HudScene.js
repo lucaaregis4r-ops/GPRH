@@ -20,7 +20,7 @@ export class HudScene extends Phaser.Scene {
       })
       .setDepth(95);
     this.locationText = this.add
-      .text(this.scale.width - 430, 19, this.buildLocationText(), {
+      .text(this.scale.width - 520, 19, this.buildLocationText(), {
         fontFamily: GPRHTheme.font.family,
         fontSize: "15px",
         color: GPRHTheme.colors.cream,
@@ -28,9 +28,9 @@ export class HudScene extends Phaser.Scene {
       .setDepth(95)
       .setOrigin(0, 0);
     this.hint = this.add
-      .text(this.scale.width - 210, 19, "Tab Caderno", {
+      .text(this.scale.width - 340, 18, this.buildTutorialHint(), {
         fontFamily: GPRHTheme.font.family,
-        fontSize: "15px",
+        fontSize: "11px",
         color: GPRHTheme.colors.muted,
       })
       .setDepth(95)
@@ -55,8 +55,8 @@ export class HudScene extends Phaser.Scene {
   }
 
   resize(gameSize) {
-    this.locationText.setX(gameSize.width - 430);
-    this.hint.setX(gameSize.width - 210);
+    this.locationText.setX(gameSize.width - 520);
+    this.hint.setX(gameSize.width - 340);
     this.bottomLeftText.setY(gameSize.height - 44);
     this.bottomRightText.setPosition(gameSize.width - 390, gameSize.height - 44);
     this.scene.restart({ snapshot: this.snapshot, location: this.location });
@@ -81,9 +81,16 @@ export class HudScene extends Phaser.Scene {
     return `Local: ${this.location?.label || "Corredor"}`;
   }
 
+  buildTutorialHint() {
+    const hint = this.snapshot.playerKnowledge.hoje?.tutorialHint || "Tab abre o caderno";
+    return `Dica: ${hint.length > 46 ? `${hint.slice(0, 43)}...` : hint}`;
+  }
+
   buildBottomLeftText() {
     const time = this.snapshot.playerKnowledge.agenda.tempoDia;
-    const clock = time ? `${time.horaAtual} | ${time.tempoRestanteMin} min restantes` : "Horario indisponivel";
+    const clock = time
+      ? `${time.horaAtual} | ${routinePeriodLabel(time.routineSlot)} | ${time.tempoRestanteMin} min restantes`
+      : "Horario indisponivel";
     return `WASD/setas mover | E interagir | Tab caderno | ${clock}`;
   }
 
@@ -120,4 +127,16 @@ export class HudScene extends Phaser.Scene {
         .setDepth(96);
     });
   }
+}
+
+function routinePeriodLabel(slot) {
+  const labels = {
+    morning_start: "chegada",
+    morning_work: "trabalho da manha",
+    midday_break: "intervalo",
+    afternoon_work: "trabalho da tarde",
+    late_day: "fim da tarde",
+    end_day: "saida",
+  };
+  return labels[slot] || "expediente";
 }

@@ -3,6 +3,7 @@ ui-phaser/node_modules/
 
 dist/
 ui-phaser/dist/
+ui-phaser/.runtime/
 
 debug/output/
 

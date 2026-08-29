@@ -14,6 +14,7 @@ const {
   createFunctionAssignmentsFromTasks,
   recalculateFunctionalMetrics,
 } = require("../simulation/functionLoadSimulation");
+const { DEFAULT_EMPLOYEE_ROUTINE_STATE } = require("../simulation/employeeSimulationDefaults");
 
 const SENIORITY_MULTIPLIER = {
   junior: 0.9,
@@ -208,7 +209,9 @@ function generateEmployees(company, sectors, rng, idFactory) {
         perspectivaCrescimento: growthPerspective,
         estadoDeBuscaExterna: false,
         propostaExternaRecebida: false,
+        managerId: null,
         demandasPendentes: [],
+        ...cloneRoutineDefaults(),
         absenteismo: 0,
         eventosRecentes: [],
         status: "ativo",
@@ -322,6 +325,14 @@ function ensureSectorLeadership(sectors, employees) {
     const leader = sectorEmployees.sort((a, b) => b.influenciaInformal - a.influenciaInformal)[0];
     if (leader) sector.liderancaFormalId = leader.id;
   });
+}
+
+function cloneRoutineDefaults() {
+  return {
+    ...DEFAULT_EMPLOYEE_ROUTINE_STATE,
+    lastRoutineEvents: [],
+    routineCooldowns: {},
+  };
 }
 
 module.exports = {

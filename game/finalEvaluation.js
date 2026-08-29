@@ -27,6 +27,7 @@ function evaluateFinalSession(session) {
     makeCriterion("demandas", "Responder demandas pendentes", metrics.demandasPendentes, "<=", goals.demandasPendentesMaximo ?? 3),
     makeCriterion("caixa", "Manter caixa saudavel", metrics.caixa, ">=", goals.caixaMinimo ?? 0),
     makeCriterion("confianca_rh", "Melhorar confianca no RH", metrics.confiancaRhMedia, ">=", goals.confiancaRhMinima ?? 48),
+    makeCriterion("sustentabilidade_trabalho", "Manter sustentabilidade do trabalho", metrics.workSustainabilityMedia, ">=", goals.sustentabilidadeMinima ?? 42),
     makeCriterion("compliance", "Nao deixar denuncia grave sem resposta", metrics.denunciasAbertas, "<=", goals.denunciasAbertasMaximo ?? 0),
   ];
 
@@ -105,7 +106,7 @@ function buildEmergentStory(session, metrics, criteria, classification) {
     `A campanha terminou como ${classification}.`,
     `O RH executou ${actions} acao(oes) e fechou com clima ${Math.round(metrics.climaMedio)} e confianca media ${Math.round(
       metrics.confiancaRhMedia
-    )}.`,
+    )}, com sustentabilidade do trabalho em ${Math.round(metrics.workSustainabilityMedia || 0)}.`,
   ];
 
   if (failed.length) {

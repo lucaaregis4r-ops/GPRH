@@ -26,6 +26,10 @@ const { initializeRhState, refreshRhEnergyForDay } = require("../rh/rhEnergy");
 const { advanceRhPlanningOneDay } = require("../rh/rhActionPlanning");
 const { processRhAction } = require("../rh/rhActionProcessor");
 const { simulatePendingDemandsOneDay } = require("../rh/pendingDemands");
+const { normalizeWorkspaceState } = require("../game/workspaceAssignment");
+const { initializeOrgChart } = require("../game/orgChartModel");
+const { simulateEmployeeRoutineDay } = require("./employeeRoutineEngine");
+const { initializeWorkDeliveryIndicators, simulateWorkDeliveryOneDay } = require("./workDeliverySimulation");
 
 function createProceduralRHSimulation(seed = "RH-TESTE-001", config = {}) {
   const rng = createRng(seed);
@@ -63,7 +67,10 @@ function createProceduralRHSimulation(seed = "RH-TESTE-001", config = {}) {
   company.funcionarios = employees.map((employee) => employee.id);
   company.relacoes = relationships.map((relationship) => relationship.id);
   company.eventos = organizationEvents.map((event) => event.id);
+  normalizeWorkspaceState(state);
+  initializeOrgChart(state);
   initializeFunctionalMetricsForEmployees(state);
+  initializeWorkDeliveryIndicators(state);
   initializeComplianceState(state);
   initializeRhState(state);
   updateCompanyDailySignals(state);
@@ -73,7 +80,7 @@ function createProceduralRHSimulation(seed = "RH-TESTE-001", config = {}) {
   return state;
 }
 
-function advanceOneDay(state) {
+function advanceOneDay(state, options = {}) {
   refreshRhEnergyForDay(state);
 
   if (isMonthClosingDay(state.calendar)) {
@@ -82,7 +89,9 @@ function advanceOneDay(state) {
   }
 
   simulateEmployeesOneDay(state);
+  if (!options.skipEmployeeRoutine) simulateEmployeeRoutineDay(state);
   simulateFunctionLoadOneDay(state);
+  simulateWorkDeliveryOneDay(state);
   simulateEmployeeActions(state);
   simulatePendingDemandsOneDay(state);
   simulatePsychosocialRisksOneDay(state);
@@ -97,9 +106,9 @@ function advanceOneDay(state) {
   return state;
 }
 
-function advanceDays(state, numberOfDays) {
+function advanceDays(state, numberOfDays, options = {}) {
   for (let day = 0; day < numberOfDays; day += 1) {
-    advanceOneDay(state);
+    advanceOneDay(state, options);
   }
   return state;
 }

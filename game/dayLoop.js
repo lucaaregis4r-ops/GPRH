@@ -11,6 +11,11 @@ const { summarizeObjectiveMetrics, evaluateObjectiveProgress } = require("./obje
 const { buildWeeklyBriefing } = require("./weekPlanner");
 const { createWeeklyReport } = require("../reports/weeklyReport");
 const { advanceDays } = require("../simulation/simulationEngine");
+const {
+  simulateEmployeeRoutineSlot,
+  simulateEmployeeRoutineUntil,
+  routineSlotForMinute,
+} = require("../simulation/employeeRoutineEngine");
 const { processRhAction } = require("../rh/rhActionProcessor");
 const { getRhActionDefinition } = require("../rh/rhActionCatalog");
 const { createPlayerDay, spendDayResources, formatClock } = require("./timeBudget");
@@ -18,6 +23,7 @@ const { calculateActionTimeQuality, createSyntheticPlanFromTime } = require("../
 
 function createDailyGameSession(seed = "RH-DIARIO-001", options = {}) {
   const weeklySession = createGameSession(seed, options);
+  simulateEmployeeRoutineSlot(weeklySession.state, "morning_start", weeklySession.state.rng);
   return {
     ...weeklySession,
     modo: "diario",
@@ -26,6 +32,8 @@ function createDailyGameSession(seed = "RH-DIARIO-001", options = {}) {
     dailyReports: [],
     semanaInicioMetricas: summarizeObjectiveMetrics(weeklySession.state),
     semanaInicioBriefing: buildWeeklyBriefing(weeklySession.state),
+    dayStartMetrics: summarizeObjectiveMetrics(weeklySession.state),
+    dayStartEventIndex: (weeklySession.state.organizationEvents || []).length,
   };
 }
 
@@ -40,10 +48,17 @@ function playDayAction(session, request) {
   }
 
   const duration = Number(request.tempoInvestidoMin || defaultDuration(definition));
+  const actionStartMinute = session.playerDay.horaAtual;
   const timeUse = spendDayResources(session.playerDay, duration, {
     intensity: definition.categoria === "intervencao" ? 1.2 : 1,
     complexity: definition.requerAprovacaoDiretoria ? 1.4 : 1,
   });
+  const routineSlotsProcessed = simulateEmployeeRoutineUntil(
+    session.state,
+    actionStartMinute,
+    session.playerDay.horaAtual,
+    session.state.rng
+  );
   const quality = calculateActionTimeQuality(definition, duration, {
     maturidadeRH: session.state.rh.maturidadeRH,
     confiabilidadeInformacao: inferTargetReliability(session.state, request.alvo || {}),
@@ -61,14 +76,17 @@ function playDayAction(session, request) {
 
   const entry = {
     tipo: "acao_diaria",
+    fase: definition.categoria === "descoberta" ? "investigacao" : "intervencao",
     actionId: action.id,
     nome: action.nome,
     alvo: request.alvo || {},
+    diagnostico: request.diagnostico || null,
     inicio: formatClock(session.playerDay.horaAtual - duration),
     fim: formatClock(session.playerDay.horaAtual),
     tempoInvestidoMin: duration,
     qualidadePlanejamento: quality.qualidadePlanejamento,
     riscoImproviso: quality.riscoImproviso,
+    routineSlotsProcessed,
     status: action.status,
   };
   ensureDailyActionLog(session).push(entry);
@@ -78,22 +96,33 @@ function playDayAction(session, request) {
 function endDay(session) {
   assertDailySession(session);
   const beforeDay = session.state.calendar.totalDiasSimulados;
-  const eventsBefore = (session.state.organizationEvents || []).length;
+  const eventsBefore = session.dayStartEventIndex ?? (session.state.organizationEvents || []).length;
   const actions = ensureDailyActionLog(session).slice();
 
-  advanceDays(session.state, 1);
+  const routineSlotsProcessed = simulateEmployeeRoutineUntil(
+    session.state,
+    session.playerDay.horaAtual,
+    session.playerDay.horaFim,
+    session.state.rng
+  );
+  advanceDays(session.state, 1, { skipEmployeeRoutine: true });
 
+  const newEvents = (session.state.organizationEvents || []).slice(eventsBefore);
+  const currentMetrics = summarizeObjectiveMetrics(session.state);
   const dayReport = {
     dia: beforeDay + 1,
     acoes: actions,
-    eventosNovos: (session.state.organizationEvents || []).slice(eventsBefore).map((event) => ({
+    eventosNovos: newEvents.map((event) => ({
       dia: event.dia,
       tipo: event.tipo,
       severidade: Math.round(event.severidade || 0),
       descricao: event.descricao,
     })),
     projetos: summarizeDailyProjects(session),
+    routineSlotsProcessed,
     avaliacaoParcial: buildPartialAssessment(session),
+    variacoes: buildDayVariations(session.dayStartMetrics || currentMetrics, currentMetrics),
+    causalidade: buildCausalityAssessment(actions, newEvents),
     resumo: buildDaySummary(actions, session),
   };
   session.dailyReports.push(dayReport);
@@ -105,9 +134,43 @@ function endDay(session) {
 
   if (session.status === "em_andamento") {
     session.playerDay = createPlayerDay(session.state.calendar.totalDiasSimulados + 1);
+    simulateEmployeeRoutineSlot(session.state, routineSlotForMinute(session.playerDay.horaAtual), session.state.rng);
+    session.dayStartMetrics = summarizeObjectiveMetrics(session.state);
+    session.dayStartEventIndex = (session.state.organizationEvents || []).length;
   }
 
   return dayReport;
+}
+
+function buildDayVariations(baseline, current) {
+  return {
+    climaMedio: roundDelta(current.climaMedio - baseline.climaMedio),
+    confiancaRhMedia: roundDelta(current.confiancaRhMedia - baseline.confiancaRhMedia),
+    sobrecargaMedia: roundDelta(current.sobrecargaMedia - baseline.sobrecargaMedia),
+    demandasPendentes: current.demandasPendentes - baseline.demandasPendentes,
+  };
+}
+
+function buildCausalityAssessment(actions, events) {
+  return actions.slice(0, 6).map((action) => {
+    const related = events.filter((event) => event.dados?.rhActionId === action.actionId);
+    const quality = action.qualidadePlanejamento ?? action.qualidadePrevista ?? 0;
+    return {
+      actionId: action.actionId || null,
+      nome: action.nome,
+      diagnostico: action.diagnostico || null,
+      evidencias: related.map((event) => event.descricao).slice(0, 3),
+      confiabilidade: related.length > 0 && quality >= 65 ? "moderada" : "baixa",
+      incerteza: related.length > 0
+        ? "O evento ocorreu apos a acao, mas outros fatores da simulacao tambem podem ter contribuido."
+        : "Ainda nao ha evidencia observavel suficiente para atribuir efeito.",
+      followUp: related.length > 0 ? "acompanhar sinais nos proximos dias" : "coletar informacao antes de concluir",
+    };
+  });
+}
+
+function roundDelta(value) {
+  return Math.round(value * 10) / 10;
 }
 
 function investInDailyProject(session, request, definition, timeUse, quality) {
@@ -136,10 +199,12 @@ function investInDailyProject(session, request, definition, timeUse, quality) {
 
   const entry = {
     tipo: "projeto_diario",
+    fase: "intervencao",
     projectId: project.id,
     actionId: executedAction ? executedAction.id : null,
     nome: definition.nome,
     alvo: project.alvo,
+    diagnostico: project.diagnostico || null,
     progressoMin: project.progressoMin,
     tempoMinimoMin: project.tempoMinimoMin,
     tempoIdealMin: project.tempoIdealMin,
@@ -162,6 +227,7 @@ function findOrCreateProject(session, request, definition) {
     tipo: definition.tipo,
     nome: definition.nome,
     alvo: request.alvo || {},
+    diagnostico: request.diagnostico || null,
     progressoMin: 0,
     tempoMinimoMin: tempo.tempoMinimoMin || 120,
     tempoIdealMin: tempo.tempoIdealMin || 360,

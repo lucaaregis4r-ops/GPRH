@@ -1,5 +1,5 @@
 import * as Phaser from "/vendor/phaser.esm.js";
-import { startDailySession } from "../api/rhGameClient.js";
+import { continueSavedSession, fetchSaveStatus, resetSavedSession, startDailySession } from "../api/rhGameClient.js";
 import { GPRHTheme } from "../theme/gprhTheme.js";
 import { createPixelButton, drawPixelPanel } from "../ui/pixelUi.js";
 
@@ -16,6 +16,9 @@ export class MainMenuScene extends Phaser.Scene {
     super("MainMenuScene");
     this.seed = DEFAULT_SEED;
     this.busy = false;
+    this.saveAvailable = false;
+    this.savedSeed = null;
+    this.restartArmed = false;
   }
 
   create() {
@@ -93,6 +96,21 @@ export class MainMenuScene extends Phaser.Scene {
       width: 180,
       align: "center",
     }).setDepth(10);
+    this.continueButton = createPixelButton(this, x + 478, y + panelHeight - 78, "Continuar", () => this.continueGame(), {
+      width: 190,
+      align: "center",
+    }).setDepth(10).setAlpha(0.55);
+    this.restartButton = createPixelButton(this, x + 478, y + 208, "Reiniciar save", () => this.restartSavedGame(), {
+      width: 190,
+      align: "center",
+    }).setDepth(10).setAlpha(0.55);
+
+    this.saveInfoText = this.add.text(x + 28, y + 254, "Verificando autosave...", {
+      fontFamily: GPRHTheme.font.family,
+      fontSize: "13px",
+      color: GPRHTheme.colors.muted,
+      wordWrap: { width: panelWidth - 56 },
+    }).setDepth(10);
 
     this.statusText = this.add
       .text(x + 28, y + panelHeight - 34, "Enter inicia | Backspace apaga | letras e numeros editam a seed", {
@@ -103,6 +121,7 @@ export class MainMenuScene extends Phaser.Scene {
       .setDepth(10);
 
     this.input.keyboard.on("keydown", (event) => this.handleKey(event));
+    this.loadSaveStatus();
   }
 
   drawBackgroundTexture() {
@@ -168,4 +187,68 @@ export class MainMenuScene extends Phaser.Scene {
       this.statusText.setText(`Erro ao iniciar: ${error.message}`);
     }
   }
+
+  async loadSaveStatus() {
+    try {
+      const status = await fetchSaveStatus();
+      this.saveAvailable = Boolean(status.available);
+      this.savedSeed = status.seed || null;
+      this.continueButton.setAlpha(this.saveAvailable ? 1 : 0.55);
+      this.restartButton.setAlpha(this.saveAvailable ? 1 : 0.55);
+      this.saveInfoText.setText(this.saveAvailable
+        ? `Autosave v${status.version} | Dia ${status.day} | ${status.seed} | ${formatSavedAt(status.savedAt)}`
+        : "Nenhum autosave encontrado. Uma nova partida sera salva automaticamente.");
+    } catch (error) {
+      this.saveInfoText.setText(`Autosave indisponivel: ${error.message}`);
+    }
+  }
+
+  async continueGame() {
+    if (this.busy) return;
+    if (!this.saveAvailable) {
+      this.statusText.setText("Nenhum autosave disponivel para continuar.");
+      return;
+    }
+    this.busy = true;
+    this.statusText.setText("Carregando autosave...");
+    try {
+      await continueSavedSession();
+      this.scene.start("OfficeScene");
+    } catch (error) {
+      this.busy = false;
+      this.statusText.setColor("#D92736");
+      this.statusText.setText(`Erro ao continuar: ${error.message}`);
+    }
+  }
+
+  async restartSavedGame() {
+    if (this.busy) return;
+    if (!this.saveAvailable) {
+      this.statusText.setText("Nenhum autosave para reiniciar.");
+      return;
+    }
+    if (!this.restartArmed) {
+      this.restartArmed = true;
+      this.statusText.setColor("#F0D38A");
+      this.statusText.setText("Clique em Reiniciar save novamente para confirmar.");
+      return;
+    }
+    this.busy = true;
+    this.statusText.setText("Reiniciando cenario salvo...");
+    try {
+      await resetSavedSession(this.savedSeed || this.seed || DEFAULT_SEED);
+      this.scene.start("OfficeScene");
+    } catch (error) {
+      this.busy = false;
+      this.restartArmed = false;
+      this.statusText.setColor("#D92736");
+      this.statusText.setText(`Erro ao reiniciar: ${error.message}`);
+    }
+  }
+}
+
+function formatSavedAt(value) {
+  if (!value) return "horario desconhecido";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "horario desconhecido" : date.toLocaleString("pt-BR");
 }
