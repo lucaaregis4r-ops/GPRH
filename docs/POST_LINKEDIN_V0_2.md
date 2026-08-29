@@ -20,6 +20,6 @@ O projeto foi estruturado para crescer depois com organograma, tecnologias, proc
 
 Esta versão representa a passagem de uma simulação técnica para um protótipo jogável.
 
-Código e instruções: https://github.com/lucaaregis4r-ops/src
+Código e instruções: https://github.com/lucaaregis4r-ops/GPRH
 
 #GameDev #IndieGame #Jogos #RecursosHumanos #PeopleAnalytics #Simulação #ProceduralGeneration #JavaScript #Phaser
