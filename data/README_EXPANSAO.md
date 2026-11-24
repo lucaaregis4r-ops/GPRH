@@ -37,7 +37,7 @@ Antes de substituir tudo, rode:
 node validateDataShape.js
 ```
 
-Depois, peça ao Codex para procurar no projeto por:
+Depois, procure no projeto por:
 
 ```bash
 grep -R "crescimento_desorganizado\|pequena\|media\|grande_local\|setorAfinidade\|salaryBand\|OCCUPATION_CATALOG" .
