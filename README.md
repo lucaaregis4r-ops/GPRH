@@ -31,6 +31,12 @@ Principais recursos:
 6. Encerre o expediente e analise o relatório parcial.
 7. Ajuste a estratégia para o dia seguinte.
 
+## Captura do protótipo
+
+![Escritório jogável do GPRH com empresa e equipe geradas para a demonstração](docs/screenshots/gprh-escritorio.png)
+
+Captura do protótipo jogável, com uma empresa fictícia gerada pelo jogo.
+
 ## Controles
 
 | Tecla | Ação |
